@@ -23,6 +23,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 import undetected_chromedriver as uc
 
+from data_paths import POSTS_FILE, TOPICS_FILE, require_parent_dir
+
 log = logging.getLogger("post_scraper")
 
 CHALLENGE_TITLES = ("just a moment", "un momento", "checking your browser")
@@ -62,13 +64,13 @@ def parse_args():
     parser.add_argument(
         "--topics-file",
         type=Path,
-        default=Path("resultados.jsonl"),
+        default=TOPICS_FILE,
         help="archivo .jsonl con el índice de temas",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("posts.jsonl"),
+        default=POSTS_FILE,
         help="archivo de destino para los posts",
     )
     parser.add_argument(
@@ -102,7 +104,9 @@ def parse_args():
         action="store_true",
         help="aplica scroll suave y pausas aleatorias de lectura",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    require_parent_dir(parser, args.topics_file, args.output)
+    return args
 
 
 def build_driver(profile_dir, page_timeout, headless=True):

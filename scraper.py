@@ -20,6 +20,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 import shutil
 import undetected_chromedriver as uc
 
+from data_paths import TOPICS_FILE, require_parent_dir
+
 log = logging.getLogger("scraper")
 
 CHALLENGE_TITLES = ("just a moment", "un momento", "checking your browser")
@@ -62,7 +64,7 @@ def parse_args():
         default=1,
         help="páginas que se recorren por cada foro con --phpbb",
     )
-    parser.add_argument("--output", type=Path, default=Path("resultados.jsonl"))
+    parser.add_argument("--output", type=Path, default=TOPICS_FILE)
     parser.add_argument("--profile-dir", type=Path, default=Path("chrome_profile"))
     parser.add_argument("--min-delay", type=float, default=5.0, help="pausa mínima (s)")
     parser.add_argument("--max-delay", type=float, default=12.0, help="pausa máxima (s)")
@@ -101,6 +103,7 @@ def parse_args():
         help="activa desplazamientos suaves y lecturas parciales en cada carga",
     )
     args = parser.parse_args()
+    require_parent_dir(parser, args.output)
 
     if args.urls_file:
         lines = args.urls_file.read_text(encoding="utf-8").splitlines()
