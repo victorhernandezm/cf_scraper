@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import page_status
 import scraper
 
 BASE = "https://forums.nesdev.org/viewforum.php?f=12"
@@ -106,7 +107,21 @@ class PhpbbTests(unittest.TestCase):
 
 
 class HelperTests(unittest.TestCase):
-    @unittest.skip("scraper.py ya no comprueba los códigos HTTP (check_status)")
+    def test_status_from_log_uses_main_document(self):
+        def entry(url, status, kind="Document"):
+            params = {"type": kind, "response": {"url": url, "status": status}}
+            message = {"method": "Network.responseReceived", "params": params}
+            return {"message": json.dumps({"message": message})}
+
+        entries = [
+            entry(BASE, 403),  # el desafío, antes de superarlo
+            entry(BASE, 200),
+            entry(BASE, 500, kind="Image"),
+            entry("https://challenges.cloudflare.com/x", 404),
+        ]
+        self.assertEqual(page_status.status_from_log(entries, BASE + "#p1"), 200)
+        self.assertIsNone(page_status.status_from_log([], BASE))
+
     def test_status_handling(self):
         scraper.check_status(200, BASE)
         scraper.check_status(None, BASE)

@@ -24,6 +24,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 import undetected_chromedriver as uc
 
 from data_paths import POSTS_FILE, TOPICS_FILE, require_parent_dir
+from page_status import (
+    BlockedError,
+    PageError,
+    check_status,
+    document_status,
+    enable_status_logging,
+)
 
 log = logging.getLogger("post_scraper")
 
@@ -31,10 +38,6 @@ CHALLENGE_TITLES = ("just a moment", "un momento", "checking your browser")
 CHALLENGE_SELECTOR = "#challenge-form, #challenge-running, #cf-challenge-running"
 BLOCK_SELECTOR = "#cf-error-details, .cf-error-details"
 USERNAME_SELECTOR = ".username, .username-coloured"
-
-
-class BlockedError(Exception):
-    """El sitio ha denegado el acceso o no se puede continuar con seguridad."""
 
 
 def canonicalize(url):
@@ -123,6 +126,7 @@ def build_driver(profile_dir, page_timeout, headless=True):
 
     # 'eager' no espera a que carguen imágenes rotas o scripts externos
     options.page_load_strategy = "eager"
+    enable_status_logging(options)
 
     driver = uc.Chrome(
         options=options,
@@ -222,6 +226,8 @@ def load_page(driver, url, challenge_timeout, simulate_human=False, max_retries=
 
         if is_blocked(driver):
             raise BlockedError(f"Acceso denegado en {url}: {driver.title}")
+
+        check_status(document_status(driver), url)
 
         # Si llegó aquí sin errores de servidor ni bloqueos, salir del bucle de reintentos
         break
@@ -379,6 +385,8 @@ def main():
                         )
 
                         posts, next_url = parse_topic_posts(driver.page_source, topic)
+                        if not posts:
+                            raise PageError(f"sin mensajes en {current_url}")
                         for post in posts:
                             out.write(json.dumps(post, ensure_ascii=False) + "\n")
                         out.flush()
@@ -404,7 +412,7 @@ def main():
                         topic_posts_count,
                         page_num,
                     )
-                except (TimeoutException, WebDriverException) as err:
+                except (PageError, TimeoutException, WebDriverException) as err:
                     log.error("Fallo temporal en el tema %s (%s). Se omitirá para reintentar más adelante.", topic_id, err)
                     continue
 

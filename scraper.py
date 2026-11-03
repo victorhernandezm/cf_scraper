@@ -21,6 +21,13 @@ import shutil
 import undetected_chromedriver as uc
 
 from data_paths import TOPICS_FILE, require_parent_dir
+from page_status import (
+    BlockedError,
+    PageError,
+    check_status,
+    document_status,
+    enable_status_logging,
+)
 
 log = logging.getLogger("scraper")
 
@@ -32,14 +39,6 @@ USERNAME_SELECTOR = ".username, .username-coloured"
 ROBOTS_DIRECTIVE = re.compile(
     r"^\s*(user-agent|allow|disallow|sitemap|crawl-delay)\s*:", re.IGNORECASE
 )
-
-
-class BlockedError(Exception):
-    """El sitio ha denegado el acceso o no se puede continuar con seguridad."""
-
-
-class PageError(Exception):
-    """Ha fallado una página concreta, pero se puede seguir con las demás."""
 
 
 def canonicalize(url):
@@ -143,6 +142,7 @@ def build_driver(profile_dir, page_timeout, headless=False):
     # Flags necesarias para estabilidad en WSL2 / contenedores
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    enable_status_logging(options)
 
     driver = uc.Chrome(
         options=options,
@@ -212,6 +212,7 @@ def load_page(driver, url, challenge_timeout, simulate_human=False):
     WebDriverWait(driver, 30).until(
         lambda d: d.execute_script("return document.readyState") == "complete"
     )
+    check_status(document_status(driver), url)
 
     if simulate_human:
         simulate_human_behavior(driver)
