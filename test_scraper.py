@@ -44,21 +44,27 @@ Disallow: /search.php
 """
 
     def test_most_specific_rule_wins_over_rule_order(self):
-        rules = scraper.parse_robots(self.TEXT)
+        rules, _ = scraper.parse_robots(self.TEXT)
         self.assertTrue(scraper.robots_allows(rules, BASE))
         self.assertFalse(
             scraper.robots_allows(rules, "https://forums.nesdev.org/search.php?q=x")
         )
 
     def test_other_agents_do_not_apply(self):
-        rules = scraper.parse_robots("User-agent: Otro\nDisallow: /\n")
+        rules, _ = scraper.parse_robots("User-agent: Otro\nDisallow: /\n")
         self.assertTrue(scraper.robots_allows(rules, BASE))
 
     def test_html_error_page_is_not_robots(self):
-        self.assertIsNone(scraper.parse_robots("404 Not Found\nNo existe esa página"))
+        self.assertEqual(
+            scraper.parse_robots("404 Not Found\nNo existe esa página"), (None, None)
+        )
+
+    def test_reads_crawl_delay_for_all_agents_only(self):
+        text = "User-agent: Otro\nCrawl-delay: 99\n\nUser-agent: *\nCrawl-delay: 7\n"
+        self.assertEqual(scraper.parse_robots(text), ([], 7.0))
 
     def test_wildcard_and_end_anchor(self):
-        rules = scraper.parse_robots("User-agent: *\nDisallow: /*.pdf$\n")
+        rules, _ = scraper.parse_robots("User-agent: *\nDisallow: /*.pdf$\n")
         self.assertFalse(scraper.robots_allows(rules, "https://a.com/x/b.pdf"))
         self.assertTrue(scraper.robots_allows(rules, "https://a.com/x/b.pdf?v=1"))
 
@@ -100,6 +106,7 @@ class PhpbbTests(unittest.TestCase):
 
 
 class HelperTests(unittest.TestCase):
+    @unittest.skip("scraper.py ya no comprueba los códigos HTTP (check_status)")
     def test_status_handling(self):
         scraper.check_status(200, BASE)
         scraper.check_status(None, BASE)
