@@ -1,0 +1,15 @@
+# Entorno de Python
+.venv/
+__pycache__/
+*.pyc
+
+# Perfil del navegador: contiene cookies y datos de sesión
+chrome_profile/
+
+# Datos extraídos: incluyen nombres de usuario y contenido de terceros
+*.jsonl
+*.csv
+
+# Registros y variables locales
+*.log
+.env
